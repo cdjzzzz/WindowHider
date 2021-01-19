@@ -74,6 +74,7 @@ BEGIN_MESSAGE_MAP(CWindowHideDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BUTTON_REFRESH, &CWindowHideDlg::OnBnClickedButtonRefresh)
+	ON_MESSAGE(WM_HOTKEY, OnHotKey)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_LIST_ALLPROCESS, &CWindowHideDlg::OnLvnItemchangedListAllprocess)
 	ON_BN_CLICKED(IDC_BUTTON_ADD, &CWindowHideDlg::OnBnClickedButtonAdd)
 	ON_BN_CLICKED(IDC_BUTTON_REMOVE, &CWindowHideDlg::OnBnClickedButtonRemove)
@@ -115,14 +116,24 @@ BOOL CWindowHideDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// TODO: Add extra initialization here
+	RegisterHotKeys();
 	m_listCtrlAllProcess.SetColumnHeader(L"Name,200;PID, 140");
 	m_listCtrlAllProcess.SetCheckboxeStyle(RC_CHKBOX_NONE); // Enable checkboxes
 
 	m_listCtrlToHideProcess.SetColumnHeader(L"Name,200");
 	m_listCtrlToHideProcess.SetCheckboxeStyle(RC_CHKBOX_NONE); // Enable checkboxes
 
+	OnBnClickedButtonRefresh();
+
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
+
+void CWindowHideDlg::OnDestroy()
+{
+	UnregisterHotKeys();
+	return CDialogEx::OnDestroy();
+}
+
 
 void CWindowHideDlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
@@ -173,9 +184,28 @@ HCURSOR CWindowHideDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+LONG CWindowHideDlg::OnHotKey(WPARAM wParam, LPARAM lParam)
+{
+	switch (wParam)
+	{
+	case 0x0001:
+	{
+		OnBnClickedButton3();
+	}
+	break;
+	case 0x0002:
+	{
+		OnBnClickedButtonShow();
+	}
+	break;
+
+	}
+
+	return 0;
+}
+
 void CWindowHideDlg::HideWindow(CString ProcessName)
 {
-	g_vToHidePid.clear();
 
 	PROCESSENTRY32 psEntry;
 	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -317,6 +347,8 @@ void CWindowHideDlg::OnLvnItemchangedListTohideprocess(NMHDR *pNMHDR, LRESULT *p
 
 void CWindowHideDlg::OnBnClickedButton3()
 {
+	g_vToHidePid.clear();
+
 	// TODO: Add your control notification handler code here
 	for (int i = 0; i < m_listCtrlToHideProcess.GetItemCount(); i++)
 	{
@@ -348,6 +380,27 @@ void CWindowHideDlg::OnBnClickedButtonShow()
 			//success&record
 
 		}
+	}
+}
+
+void CWindowHideDlg::RegisterHotKeys()
+{
+	int nTmpHotKeyID = 0x0001;
+	BOOL isKeyRegistered = RegisterHotKey(GetSafeHwnd(), nTmpHotKeyID, MOD_ALT, VK_G);
+	if (isKeyRegistered != FALSE)
+		m_mapHotKeys[L"HIDE"] = nTmpHotKeyID;
+
+	nTmpHotKeyID = 0x0002;
+	isKeyRegistered = RegisterHotKey(GetSafeHwnd(), nTmpHotKeyID, MOD_ALT, Vk_H);
+	if (isKeyRegistered != FALSE)
+		m_mapHotKeys[L"SHOW"] = nTmpHotKeyID;
+}
+
+void CWindowHideDlg::UnregisterHotKeys()
+{
+	for each(auto e in m_mapHotKeys)
+	{
+		UnregisterHotKey(GetSafeHwnd(), e.second);
 	}
 }
 
